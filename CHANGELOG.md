@@ -1,3 +1,10 @@
+# Desktop Build Downloads
+
+- Added a manual Build Mac Bridge workflow that tests, builds, verifies and packages an Apple silicon Mac app and optional command-line tool.
+- Added downloadable Mac ZIPs with opening instructions, license and source-commit information; no Developer ID certificates or notarization credentials are used.
+- Documented running both desktop workflows, downloading artifacts, and publishing the platform ZIPs on GitHub Releases.
+- Existing Windows packaging and iOS signing/distribution behavior are unchanged.
+
 # Windows 0.1.0 — Local iPhone Backup Publisher
 
 - Added a Windows interface for completed local Apple Devices/iTunes backups, with local password unlocking, dated backup selection, named profiles and manual publication to iCloud Drive.

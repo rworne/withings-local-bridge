@@ -81,6 +81,10 @@ Never select another person's profile for your Apple Health store.
 
 The bridge has no Withings web login, API credentials, developer server, analytics or advertising. Database processing is local. Apple handles the iCloud transfer and Apple Health storage. Your existing Withings app still communicates with Withings to populate its own databases. Health Bridge is an independent application and is not affiliated with or endorsed by Withings.
 
+## Download builds from GitHub
+
+Use **Actions → Build Mac Bridge** or **Actions → Build Windows Bridge → Run workflow**. Each workflow produces a downloadable platform ZIP. The [build and release guide](docs/BUILDS.md) explains where to find the artifacts and how to attach them to a public GitHub Release. Mac builds are Apple silicon, ad-hoc signed and not notarized; Windows builds are unsigned portable packages. Neither workflow needs Apple credentials or personal backups.
+
 ## Build the Mac app
 
 From the source directory, run `zsh Mac/build-app.sh`. It creates the app and optional command-line tool in `Mac/dist`. The build script ad-hoc signs the Mac app for local testing. This repository contains source only. Configure your own signing and distribution settings as needed; no developer team or signing credentials are included.
@@ -111,6 +115,7 @@ The name reader now coordinates iCloud reads rather than requiring the file’s 
 - `project.yml` — optional XcodeGen input for regenerating the project.
 - `scripts/check-shared.sh` — checks that the Mac package mirrors match the shared definitions.
 - `.github/workflows/ci.yml` — manually runnable Mac tests and unsigned iOS build.
+- `.github/workflows/mac.yml` and `windows.yml` — manually runnable desktop package builds and downloadable artifacts.
 
 The Mac package currently keeps copies of the three `Shared/` Swift files under `Mac/Sources/BridgeCore`. When editing these definitions, update both copies and run `scripts/check-shared.sh`.
 

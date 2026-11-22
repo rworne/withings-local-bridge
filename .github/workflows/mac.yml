@@ -1,0 +1,72 @@
+name: Build Mac Bridge
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check Apple silicon and Xcode
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          xcodebuild -version | awk '/^Xcode / {split($2, v, "."); if (v[1] < 26) exit 1}'
+      - name: Check shared definitions
+        run: zsh scripts/check-shared.sh
+      - name: Test Mac package and iPhone exchange compatibility
+        run: swift test --package-path Mac
+      - name: Build Mac application and command-line tool
+        env:
+          BRIDGE_BUILD_DIR: ${{ runner.temp }}/withings-mac-build
+          BRIDGE_DIST_DIR: ${{ runner.temp }}/withings-mac-dist
+        run: zsh Mac/build-app.sh
+      - name: Verify and package application
+        id: package
+        env:
+          MAC_DIST: ${{ runner.temp }}/withings-mac-dist
+        run: |
+          APP="$MAC_DIST/Withings Health Bridge.app"
+          codesign --verify --deep --strict "$APP"
+          test "$(lipo -archs "$APP/Contents/MacOS/WithingsLocalBridge")" = arm64
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")
+          NAME="WithingsHealthBridge-Mac-$VERSION-arm64"
+          PACKAGE="$RUNNER_TEMP/$NAME"
+          mkdir -p "$PACKAGE"
+          ditto "$APP" "$PACKAGE/Withings Health Bridge.app"
+          cp "$MAC_DIST/withings-bridge" "$PACKAGE/withings-bridge"
+          cp LICENSE "$PACKAGE/LICENSE.txt"
+          cat > "$PACKAGE/START-HERE.txt" <<'TEXT'
+          Withings Health Bridge for Mac
+
+          Apple silicon (M-series), macOS 13 or later.
+          Move Withings Health Bridge.app to Applications, then open it.
+
+          This build is ad-hoc signed, not Developer ID signed or notarized.
+          If macOS blocks it, first attempt to open it, then go to System Settings
+          > Privacy & Security > Open Anyway and confirm that you want to open it.
+
+          Choose Withings on this Mac for live local databases, or iPhone Backup
+          for a completed local backup. Backup passwords stay on this computer.
+          Select your own profile and an iCloud Drive output folder, then publish.
+          In the iPhone companion, select the same folder and sync to Apple Health.
+
+          The included withings-bridge tool is optional; the app does not require it.
+          Instructions: https://github.com/rworne/withings-local-bridge
+          Backup guide: https://github.com/rworne/withings-local-bridge/blob/main/docs/IPHONE-BACKUP.md
+          TEXT
+          printf 'Source commit: %s\nMac version: %s\nArchitecture: arm64\nSigning: ad-hoc; not notarized\n' "$GITHUB_SHA" "$VERSION" > "$PACKAGE/BUILD-INFO.txt"
+          ditto -c -k --keepParent "$PACKAGE" "$RUNNER_TEMP/$NAME.zip"
+          unzip -tq "$RUNNER_TEMP/$NAME.zip"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "path=$RUNNER_TEMP/$NAME.zip" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
