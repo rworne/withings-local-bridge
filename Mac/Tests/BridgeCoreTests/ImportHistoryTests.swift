@@ -26,6 +26,25 @@ final class ImportHistoryTests:XCTestCase {
         XCTAssertEqual(restored.name,"Test Person")
         XCTAssertThrowsError(try BridgeProfileInfo(format:info.format,version:1,profileID:"../17",name:nil).validate())
     }
+    func testProfileNameFallbackDoesNotRequireHealthSync()throws {
+        let folder=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
+        defer{try? FileManager.default.removeItem(at:folder)}
+        var snapshot=HealthSnapshot(format:HealthSnapshot.formatName,version:1,profileID:"17",revision:1,publishedAt:1000,recordsSHA256:HealthSnapshot.hash(try HealthSnapshot.encoded([HealthRecord]())),records:[],profileName:"Test Person")
+        var reads=0
+        let name=BridgeProfileInfo.displayName(in:folder,expectedID:"17",cached:nil){url in
+            XCTAssertEqual(url.lastPathComponent,"profile-17.whealth");reads+=1;try snapshot.validate();return snapshot
+        }
+        XCTAssertEqual(name,"Test Person");XCTAssertEqual(reads,1)
+        let cached=BridgeProfileInfo.displayName(in:folder,expectedID:"17",cached:name){_ in XCTFail("Do not repeatedly parse a snapshot for a cached name");return snapshot}
+        XCTAssertEqual(cached,name)
+        XCTAssertNil(BridgeProfileInfo.displayName(in:folder,expectedID:"99",cached:nil){_ in snapshot})
+        snapshot.profileName="  "
+        XCTAssertNil(BridgeProfileInfo.displayName(in:folder,expectedID:"17",cached:nil){_ in snapshot})
+        let info=BridgeProfileInfo(format:"WithingsHealthBridgeProfile",version:1,profileID:"17",name:"Updated Person")
+        try JSONEncoder().encode(info).write(to:folder.appendingPathComponent("profile-17.wprofile"))
+        XCTAssertEqual(BridgeProfileInfo.displayName(in:folder,expectedID:"17",cached:"Old Person"){_ in XCTFail("Readable profile metadata takes priority");return snapshot},"Updated Person")
+    }
     func testOldSnapshotWithoutNameStillLoads()throws {
         let snapshot=HealthSnapshot(format:HealthSnapshot.formatName,version:1,profileID:"17",revision:1,publishedAt:1000,recordsSHA256:HealthSnapshot.hash(try HealthSnapshot.encoded([HealthRecord]())),records:[])
         var json=try JSONSerialization.jsonObject(with:HealthSnapshot.encoded(snapshot)) as! [String:Any]

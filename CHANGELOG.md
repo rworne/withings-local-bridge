@@ -1,3 +1,48 @@
+# Backup Setup Documentation
+
+- Added a complete guide for creating a local Finder backup, locating it, unlocking it and publishing Withings measurements to the existing iPhone client.
+- Clarified iCloud Backup versus iCloud Drive, manual refresh/freshness requirements, password handling and temporary database copies.
+- Updated the main setup instructions for both supported data sources.
+
+# iOS 0.2.5 — Profile Names in New iCloud Folders
+
+- Request profile metadata download before inspecting a potentially unmaterialized iCloud file.
+- Resolve missing picker names from the validated measurement snapshot without requiring an Apple Health sync.
+- Cache resolved names and refresh profile metadata when the selected profile changes.
+- Keep the same export format and behavior for Mac-database and iPhone-backup sources; Mac remains 0.3.3.
+
+# Mac 0.3.3 — Shared Session Identifiers
+
+- Identify local session rows by database UUID and Core Data primary key, preserving remote and app track IDs as metadata.
+- Handle distinct local session versions sharing a remote track ID without aborting the entire export or silently discarding either row.
+- Keep Apple Health measurement identities and type/time duplicate matching unchanged.
+- Added regression coverage for shared remote track IDs, corrections and removal of one local session version.
+
+# Mac 0.3.2 — Prepare Extracted Measurement Databases
+
+- Prepare every extracted database as a private writable copy before the regular read-only measurement reader opens it.
+- Checkpoint committed WAL measurements, verify DELETE journal mode, and remove obsolete private sidecars.
+- Rebuild shared-memory indexes instead of reusing archived SHM files from the phone.
+- Keep original backup files untouched and retain the existing exact app-domain/path filtering.
+- Added a regression test with measurements present only in a live WAL and replaced text-only extraction fixtures with real SQLite databases.
+
+# Mac 0.3.1 — Backup Index Compatibility
+
+- Open backup indexes as private writable copies so SQLite can initialize WAL/journal state without changing the original backup.
+- Preserve a supplied unencrypted index WAL when copying the index.
+- Verify the decrypted SQLite header and include SQLite's error code and explanation if querying still fails.
+- Remove the private index and journal companions after database extraction.
+- Added WAL-mode index coverage to the encrypted/unencrypted backup fixture.
+
+# Mac 0.3.0 — Manual iPhone Backup Source
+
+- Added a source selector for local Withings databases or a completed iPhone backup.
+- Added local password unlocking of encrypted backups, dated backup selection, profile selection and manual publication.
+- Extracts only required Withings databases and WAL companions, preserving the existing device filtering and iPhone exchange format.
+- Backup mode requires neither WiScale.app on the Mac nor automatic polling. Passwords are not saved.
+- Allows older backups for testing; documents authoritative snapshot replacement.
+- iPhone companion unchanged at 0.2.4.
+
 # Documentation update
 
 - Explained Saved, Already in Health, Unchanged, Not Authorized and Removed sync results.

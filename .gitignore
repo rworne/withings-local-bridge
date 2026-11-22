@@ -52,3 +52,12 @@ Config/Local.xcconfig
 .env
 .env.*
 !.env.example
+
+# Local iPhone backups and temporary extraction folders
+LocalBackups/
+iphone_backups/
+WithingsBackup-*/
+Manifest.plist
+Status.plist
+Manifest.mbdb
+Manifest.mbdx

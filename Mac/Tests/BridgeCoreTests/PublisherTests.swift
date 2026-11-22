@@ -66,6 +66,28 @@ final class PublisherTests:XCTestCase {
         let db=try Database(url:source.appendingPathComponent("17_WTHealth.sqlite"),name:"fixture")
         XCTAssertThrowsError(try db.execute("DELETE FROM ZWTOBJECT"))
     }
+    func testSharedRemoteTrackIDsRetainDistinctStableLocalRows()throws {
+        let tracks=try WritableDB(source.appendingPathComponent("17_Tracks.sqlite"))
+        try tracks.exec("""
+          CREATE TABLE Z_METADATA(Z_UUID TEXT);INSERT INTO Z_METADATA VALUES('tracks-fixture');
+          CREATE TABLE ZTRACK(Z_PK INTEGER PRIMARY KEY,ZSTARTDATE REAL,ZENDDATE REAL,ZISREMOVED INTEGER,ZTRACKID INTEGER,ZAPPTRACKID TEXT,ZSTEPS INTEGER);
+          INSERT INTO ZTRACK VALUES(1,800000000,800000600,0,55,'local-a',100);
+          INSERT INTO ZTRACK VALUES(2,800000001,800000600,0,55,'local-b',110);
+          """)
+        let first=try Extractor.extract(folder:source,profile:"17").records.filter{$0.source.entity == "ZTRACK"}
+        XCTAssertEqual(first.count,2);XCTAssertEqual(Set(first.map(\.id)).count,2)
+        XCTAssertEqual(Set(first.compactMap{$0.metadata["ZTRACKID"]}),["55"])
+        XCTAssertEqual(Set(first.compactMap{$0.metadata["ZAPPTRACKID"]}),["local-a","local-b"])
+        let healthBefore=try snapshot(HealthPublisher.publish(config))
+        try tracks.exec("UPDATE ZTRACK SET ZSTEPS=120,ZSTARTDATE=800000002 WHERE Z_PK=2")
+        let corrected=try Extractor.extract(folder:source,profile:"17").records.filter{$0.source.entity == "ZTRACK"}
+        XCTAssertEqual(Set(first.map(\.id)),Set(corrected.map(\.id)))
+        XCTAssertEqual(try HealthPublisher.publish(config).total,healthBefore.records.count)
+        try tracks.exec("DELETE FROM ZTRACK WHERE Z_PK=1")
+        let remaining=try Extractor.extract(folder:source,profile:"17").records.filter{$0.source.entity == "ZTRACK"}
+        XCTAssertEqual(remaining.count,1)
+        XCTAssertEqual(remaining.first?.id,first.first{$0.metadata["nativeLocalPrimaryKey"] == "2"}?.id)
+    }
     func testSchemaChangeCannotPublishPartialSnapshot()throws {
         let first=try HealthPublisher.publish(config)
         let before=try Data(contentsOf:XCTUnwrap(first.package))

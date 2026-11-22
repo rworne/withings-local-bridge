@@ -189,7 +189,10 @@ public enum Extractor {
                 if let raw=score.text("ZOVERALLSTATUS"){values.append(value(raw,metric:"sleep.status",unit:nil,field:"ZSLEEPSCORE.ZOVERALLSTATUS",interpretation:"native_code"))}
                 // Foreign keys to subscore rows are metadata, never score values.
             }
-            output.append(try make(row,profile:profile,description:description,entity:"ZTRACK",keys:["ZTRACKID","ZAPPTRACKID"],kind:"session",start:start,end:end,values:values,
+            // Remote track IDs can be shared by distinct local session versions.
+            // Namespace the actual Core Data row by database identity; retain both
+            // remote/app IDs as metadata instead of assuming either is unique.
+            output.append(try make(row,profile:profile,description:description,entity:"ZTRACK",keys:[],kind:"session",start:start,end:end,values:values,
                                    metadata:metadata(row,keys:["ZCATEGORY","ZTYPE","ZAPPTRACKID","ZTRACKID","ZCOMPLETE","ZISNIGHT","ZISPRIMARY","ZISINPROGRESS","ZSLEEPSCORE"])))
         }
     }

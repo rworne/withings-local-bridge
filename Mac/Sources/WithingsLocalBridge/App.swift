@@ -4,6 +4,12 @@ import Combine
 import BridgeCore
 
 @MainActor final class BridgeModel:ObservableObject {
+    @Published var backupMode=false
+    @Published var backups:[IPhoneBackupInfo]=[]
+    @Published var backupIndex=0
+    @Published var backupPassword=""
+    @Published var backupFolder:URL?
+    private var backupSession:IPhoneBackupSession?
     @Published var withingsApplication:URL?
     @Published var source:URL?
     @Published var output:URL?
@@ -16,18 +22,77 @@ import BridgeCore
     @Published var lastPublished:String=""
     @Published var recentMeasurements:[PublishedMeasurement]=[]
     @Published var showRecentMeasurements=false
+    private var termination:AnyCancellable?
     private var monitor:AutoPublishMonitor?
     private var signature:String?
     private let defaults=UserDefaults.standard
     init(){
         refreshWithingsInstallation()
-        source=BridgeLocations.sourceFolder(override:restore("source"));output=restore("output")
+        output=restore("output")
+        if !defaults.bool(forKey:"backupMode") { source=BridgeLocations.sourceFolder(override:restore("source")) }
         // Do not trust old releases' automatically chosen profile preference.
         defaults.removeObject(forKey:"profile");defaults.removeObject(forKey:"automatic")
         if source != nil {loadProfiles(restoreSelection:true)}
         else {status="Choose the Withings database folder to continue."}
+        if defaults.bool(forKey:"backupMode") { setBackupMode(true) }
         refreshHistory()
         monitor=AutoPublishMonitor{[weak self] in self?.poll()}
+        termination=NotificationCenter.default.publisher(for:NSApplication.willTerminateNotification).sink{[weak self] _ in self?.backupSession=nil}
+    }
+    func setBackupMode(_ enabled:Bool) {
+        backupMode=enabled; defaults.set(enabled,forKey:"backupMode")
+        automatic=false; profile=""; profiles=[]; signature=nil; backupPassword=""
+        backupSession=nil; lastSync=""; lastPublished=""; recentMeasurements=[]
+        if enabled {
+            source=nil
+            if let folder=restore("backup") { inspectBackup(folder) }
+            else { status="Choose an iPhone backup folder, then unlock it to select your profile." }
+        } else {
+            source=BridgeLocations.sourceFolder(override:restore("source"))
+            loadProfiles(restoreSelection:true)
+        }
+    }
+    func chooseBackup() {
+        let panel=NSOpenPanel(); panel.canChooseDirectories=true; panel.canChooseFiles=false
+        panel.prompt="Choose iPhone Backup"
+        panel.message="Choose a backup folder or its parent folder. The original backup will not be modified."
+        guard panel.runModal() == .OK,let url=panel.url else{return}
+        do {
+            defaults.set(try url.bookmarkData(options:.withSecurityScope,includingResourceValuesForKeys:nil,relativeTo:nil),forKey:"backup")
+            inspectBackup(url)
+        } catch {status=error.localizedDescription}
+    }
+    func inspectBackup(_ folder:URL) {
+        backupSession=nil; source=nil; profiles=[]; profile=""; backupPassword=""
+        backupFolder=folder; backupIndex=0
+        let access=folder.startAccessingSecurityScopedResource(); defer{if access{folder.stopAccessingSecurityScopedResource()}}
+        do { backups=try IPhoneBackupInfo.discover(in:folder); status="Unlock the selected backup to find Withings profiles." }
+        catch {backups=[];status=error.localizedDescription}
+    }
+    func selectBackup(_ index:Int) {
+        backupIndex=index; backupPassword=""; backupSession=nil; source=nil; profiles=[];profile=""
+        status="Unlock the selected backup to find Withings profiles."
+    }
+    func unlockBackup() {
+        guard backups.indices.contains(backupIndex),!working else{return}
+        let info=backups[backupIndex], password=backupPassword, folder=backupFolder
+        backupPassword="";working=true;source=nil;profile="";profiles=[];backupSession=nil
+        Task { [self] in
+            let access=folder?.startAccessingSecurityScopedResource() ?? false
+            defer{if access{folder?.stopAccessingSecurityScopedResource()};working=false}
+            do {
+                let session=try await Task.detached(priority:.utility){ [weak self] in
+                    try IPhoneBackupSession.open(info,password:password){ [weak self] message in
+                        Task{@MainActor [weak self] in self?.status=message}
+                    }
+                }.value
+                backupSession=session;source=session.source
+                loadProfiles()
+                if let saved=defaults.string(forKey:"backupProfile-" + digest(Data(info.folder.path.utf8))),profiles.contains(where:{$0.id == saved}) {profile=saved}
+                refreshHistory();refreshPublishedTime()
+                status="Backup opened. Choose your profile and publish manually. Backup data can replace newer data previously published for that profile."
+            } catch {status=error.localizedDescription}
+        }
     }
     func refreshWithingsInstallation(){
         withingsApplication=BridgeLocations.withingsApplication(registered:NSWorkspace.shared.urlForApplication(withBundleIdentifier:"com.withings.wiScaleNG"))
@@ -82,7 +147,8 @@ import BridgeCore
     }
     func remember(){
         signature=nil
-        if let source {ProfilePreferences.save(source:source,profileID:profile,choices:profiles,automatic:automatic,defaults:defaults)}
+        if backupMode {if let info=backupSession?.info {defaults.set(profile,forKey:"backupProfile-" + digest(Data(info.folder.path.utf8)))};automatic=false}
+        else if let source {ProfilePreferences.save(source:source,profileID:profile,choices:profiles,automatic:automatic,defaults:defaults)}
         refreshPublishedTime()
         refreshHistory()
         if automatic {poll()}
@@ -108,7 +174,7 @@ import BridgeCore
     }
     private func stateFolder(source:URL,output:URL,profile:String)->URL {
         let root=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("WithingsHealthBridge",isDirectory:true)
-        let key=digest(Data([source.path,output.path,profile].joined(separator:"\n").utf8))
+        let key=digest(Data([backupMode ? (backupSession?.info.folder.path ?? source.path) : source.path,output.path,profile].joined(separator:"\n").utf8))
         return root.appendingPathComponent(key,isDirectory:true)
     }
     private func refreshHistory() {
@@ -124,7 +190,7 @@ import BridgeCore
         } else {lastPublished=""}
     }
     func poll(){
-        guard automatic,canSync,let next=sourceSignature() else{return}
+        guard !backupMode,automatic,canSync,let next=sourceSignature() else{return}
         lastSync=Date().formatted(date:.abbreviated,time:.standard)
         refreshPublishedTime()
         guard signature != next || lastPublished.isEmpty else {
@@ -163,6 +229,13 @@ import BridgeCore
     var body:some Scene {
         Window("Withings Health Bridge",id:"bridge-main"){
             Form {
+                Section("Data Source") {
+                    Picker("Source",selection:Binding(get:{model.backupMode},set:{model.setBackupMode($0)})) {
+                        Text("Withings on this Mac").tag(false)
+                        Text("iPhone Backup").tag(true)
+                    }.pickerStyle(.segmented)
+                }
+                if !model.backupMode {
                 Section("Withings Application") {
                     if model.withingsApplication != nil {
                         Label("Withings is installed",systemImage:"checkmark.circle.fill")
@@ -174,11 +247,30 @@ import BridgeCore
                         Button("Check Again"){model.refreshWithingsInstallation()}
                     }
                 }
+                }
                 Section("Database Source") {
+                    if model.backupMode {
+                        Text(model.backupFolder?.path ?? "No backup folder selected").font(.callout).textSelection(.enabled)
+                        Button("Choose iPhone Backup…"){model.chooseBackup()}
+                        if !model.backups.isEmpty {
+                            Picker("Backup",selection:Binding(get:{model.backupIndex},set:{model.selectBackup($0)})) {
+                                ForEach(model.backups.indices,id:\.self) { index in
+                                    Text(model.backups[index].date?.formatted(date:.abbreviated,time:.standard) ?? "Date unavailable").tag(index)
+                                }
+                            }
+                            if model.backups.indices.contains(model.backupIndex),model.backups[model.backupIndex].encrypted {
+                                SecureField("Backup password",text:$model.backupPassword)
+                                Text("Use the Finder/iTunes backup password. It is not saved or sent anywhere.").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Button("Open Backup"){model.unlockBackup()}
+                            Text("Only the required Withings databases are extracted into a temporary private folder. Publish manually after opening each backup; the Withings Mac app is not required.").font(.caption).foregroundStyle(.secondary)
+                        }
+                    } else {
                     Text(model.source?.path ?? "No folder selected").font(.callout).textSelection(.enabled)
                     HStack {
                         Button("Choose Withings Database Folder…"){model.choose(source:true)}
                         Button("Use Standard Location"){model.useStandardSource()}
+                    }
                     }
                     Picker("Profile",selection:Binding(get:{model.profile},set:{model.selectProfile($0)})){
                         Text("-none-").tag("")
@@ -191,12 +283,14 @@ import BridgeCore
                     Text("Choose an iCloud Drive folder to transfer extracted records to your iPhone. This app makes no requests to Withings servers.").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Synchronization") {
+                    if !model.backupMode {
                     Toggle("Automatically publish database changes",isOn:$model.automatic)
                         .disabled(!model.canSync)
                         .onChange(of:model.automatic){_ in model.remember()}
                     Text("Checks once a minute while this Mac app is running, including with its window closed. Also checks when the Mac wakes or you return to the app. Withings must update its local databases before there is anything new to publish.").font(.caption).foregroundStyle(.secondary)
+                    }
                     HStack{
-                        Button("Sync Now"){model.sync()}.buttonStyle(.borderedProminent)
+                        Button(model.backupMode ? "Publish Backup":"Sync Now"){model.sync()}.buttonStyle(.borderedProminent)
                     }.disabled(!model.canSync)
                     if model.working{ProgressView().frame(maxWidth:.infinity)}
                     Text(model.status).textSelection(.enabled)
@@ -245,9 +339,9 @@ private struct BridgeMenu:View {
     @Environment(\.openWindow) private var openWindow
     var body:some View {
         Text("Withings Health Bridge")
-        Text(model.working ? "Syncing…":model.automatic ? "Automatic publishing on":"Automatic publishing off")
+        Text(model.working ? "Syncing…":model.backupMode ? "Manual backup publishing":model.automatic ? "Automatic publishing on":"Automatic publishing off")
         Divider()
-        Button(model.working ? "Syncing…":"Sync Now") {model.sync()}
+        Button(model.working ? "Syncing…":model.backupMode ? "Publish Backup":"Sync Now") {model.sync()}
             .disabled(!model.canSync)
         Text("Last checked: \(model.lastSync.isEmpty ? "Not checked this session":model.lastSync)")
         Text("Last published (local): \(model.lastPublished.isEmpty ? "Not available":model.lastPublished)")

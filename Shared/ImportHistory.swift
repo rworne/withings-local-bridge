@@ -6,6 +6,10 @@ struct BridgeProfileInfo:Codable,Sendable {
     let profileID:String
     let name:String?
     static func read(from url:URL,expectedID:String)throws->BridgeProfileInfo {
+        // A newly selected iCloud folder may expose only a placeholder. Request
+        // the named file before inspecting it; otherwise an absent local copy can
+        // fail the resource lookup before a download is ever requested.
+        try? FileManager.default.startDownloadingUbiquitousItem(at:url)
         let resource=try url.resourceValues(forKeys:[.isUbiquitousItemKey,.isSymbolicLinkKey])
         guard resource.isSymbolicLink != true else{throw ExchangeError.invalid}
         if resource.isUbiquitousItem==true {try FileManager.default.startDownloadingUbiquitousItem(at:url)}
@@ -25,6 +29,22 @@ struct BridgeProfileInfo:Codable,Sendable {
         try info.validate()
         guard info.profileID==expectedID else{throw ExchangeError.invalid}
         return info
+    }
+    static func displayName(in folder:URL,expectedID:String,cached:String?,
+                            readSnapshot:(URL)throws->HealthSnapshot)->String? {
+        func usable(_ value:String?)->String? {
+            guard let value,value.count<=160 else{return nil}
+            let trimmed=value.split(whereSeparator:\.isWhitespace).joined(separator:" ")
+            return trimmed.isEmpty ? nil:trimmed
+        }
+        let sidecar=folder.appendingPathComponent("profile-"+expectedID+".wprofile")
+        if let info=try? read(from:sidecar,expectedID:expectedID),let name=usable(info.name){return name}
+        if let name=usable(cached){return name}
+        // Name discovery must not require a Health import. The snapshot reader
+        // coordinates the iCloud read and validates the complete envelope.
+        let file=folder.appendingPathComponent("profile-"+expectedID+".whealth")
+        guard let snapshot=try? readSnapshot(file),snapshot.profileID==expectedID else{return nil}
+        return usable(snapshot.profileName)
     }
     func validate()throws {
         guard format=="WithingsHealthBridgeProfile",version==1,!profileID.isEmpty,

@@ -63,3 +63,37 @@ The menu-bar release build passed, and the signed app bundle was verified with `
 All 19 Mac tests passed. New checks cover the 50-entry cap, newest-measurement ordering, persistence, corrections without duplicates, unchanged checks not rewriting the log, migration from an existing snapshot, malformed-history recovery and nonfatal history-write failure. History serialization excludes measurement values and device/profile names. The existing publisher/source-schema safeguards continue to pass.
 
 The iOS device build passed with the shared Icon Composer document compiled as AppIcon; the built plist includes CFBundlePrimaryIcon/AppIcon. Apple’s compiler also rendered the Mac icon successfully. The Mac release is ad-hoc signed for local testing. No live measurements or Apple Health records were read/written during verification; synthetic fixtures were used. Real menu/history presentation and OS icon caching remain checks on the user’s Mac/iPhone.
+
+## Mac 0.3.0 manual iPhone backup source
+
+- All 21 Mac tests passed, including an RFC3394 known-answer test and a synthetic encrypted Finder backup with wrapped class/file keys, encrypted Manifest.db, database and WAL files, and an unrelated app domain.
+- Verified wrong-password failure, exact-domain/file filtering, WAL preservation, temporary extraction cleanup, both NSData metadata encodings, unencrypted extraction and incomplete-backup rejection.
+- Existing provenance, publication, schema guards, correction/removal and history tests remain passing. Shared Swift definitions match; the iPhone code and exchange format are unchanged.
+- Inspected only the supplied backup's unencrypted metadata: it is a completed encrypted modern backup and lists the Withings application. Its password was not supplied. Real database extraction, phone schema compatibility and end-to-end Health import remain unverified until the user opens it locally in the app.
+- Release Mac app built and ad-hoc signature verified. No live Health records, iCloud outputs or original backup files were changed during development.
+
+## Mac 0.3.1 backup index compatibility
+
+A synthetic WAL-mode index reproduced a SQLite 14 query failure with read-only access. Indexes are now opened as private writable copies, including unencrypted backups. The complete 21-test suite passes with the WAL-mode fixture. Actual supplied-backup unlocking remains a user test; no password was supplied to the agent. Failures now distinguish invalid decrypted headers from SQLite query errors and show SQLite's code/message.
+
+## Mac 0.3.2 extracted measurement database preparation
+
+The complete 22-test suite passes. A new regression fixture copies a real SQLite main file and its active WAL (containing a committed measurement), prepares only the private copies, then reads the measurement using the production read-only Database class. It verifies DELETE journal mode and byte-for-byte preservation of the original main file and WAL. Encrypted/unencrypted extraction fixtures now contain real SQLite databases. Original backups, live iCloud exports and Apple Health records were not modified. The user's encrypted database schemas still require local testing after password entry.
+
+## Mac 0.3.3 shared track identifiers
+
+- Inspected the already-unlocked temporary iPhone database copies read-only and found five pairs of active session rows sharing remote track IDs but differing in local IDs and session details. This was an intra-database collision, not a conflict between Mac and iPhone exports.
+- Track source identities now use database UUID and Core Data primary key; remote/app track IDs remain metadata. Health measurement identities still depend on profile, metric and precise times.
+- All 23 tests passed, including distinct session versions sharing a remote ID, stable identities after correction, and deletion of just one version.
+- A full local publication from the unlocked iPhone copies succeeded with 21,057 eligible records. It used an isolated private temporary output/state folder, deleted immediately after verification. No live delivery folder, original backup or Apple Health records were changed.
+
+## iOS 0.2.5 profile name discovery
+
+- Compared the user's Mac-database and iPhone-backup delivery folders directly: profile sidecars were byte-identical; both snapshots carried the same profile name and ID. No files in either folder were changed.
+- All 24 tests passed, including metadata priority, missing-sidecar snapshot fallback, cached-name avoidance of repeated snapshot parsing, blank-name handling and rejection of another profile's name.
+- Unsigned generic iOS build succeeded with the updated project version 0.2.5/build 6. Shared definitions match. No simulator/device runtime was available; actual iCloud placeholder behavior must be confirmed on the user's phone.
+- No Health records, delivery folders or authentication settings were changed during testing.
+
+## User confirmation — November 22, 2026
+
+The user confirmed both publishing methods and the iOS profile-name fix work on their devices. This complements the 24 passing automated tests, successful Mac release builds and successful unsigned generic iOS build. No new executable changes were made for the documentation/check-in update.

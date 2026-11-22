@@ -1,14 +1,16 @@
 # Withings Local Bridge
 
-Source for **Withings Health Bridge**, **Mac 0.2.6 (build 7)** and **iOS 0.2.4 (build 5)**: a Mac publisher and an iPhone companion.
+Source for **Withings Health Bridge**, **Mac 0.3.3 (build 11)** and **iOS 0.2.5 (build 6)**: a Mac publisher and an iPhone companion.
 
-The Mac reads the databases maintained by the installed Withings app, selects supported measurements with verified Withings hardware provenance, and publishes a compact snapshot to your chosen iCloud Drive folder. The iPhone reads that folder and saves missing measurements to Apple Health.
+The Mac reads either the databases maintained by the installed Withings app or a completed local iPhone backup, selects supported measurements with verified Withings hardware provenance, and publishes a compact snapshot to your chosen iCloud Drive folder. The iPhone reads that folder and saves missing measurements to Apple Health.
 
 ## Setup
 
-1. On an Apple silicon Mac, install and sign into Withings (WiScale.app). Let it finish syncing.
-2. Open **Withings Health Bridge.app**. The standard database folder is detected when accessible. If macOS denies access, use **Choose Withings Database Folder** to select `~/Library/Containers/com.withings.wiScaleNG/Data/Library/Application Support/coredata`. A consistent backup containing the database and its WAL files also works.
-3. Explicitly choose your profile (name and Withings ID). Create a dedicated folder in iCloud Drive and select it as the output folder. Click **Sync Now**. Optionally enable automatic publishing, which checks once a minute while the Mac bridge is running. Profile and folder choices are remembered.
+1. Choose a Mac data source:
+   - **Withings on this Mac:** on an Apple silicon Mac, install Withings (WiScale.app), sign in and let it sync. The bridge detects the standard database folder when accessible. If needed, click **Choose Withings Database Folder** and select `~/Library/Containers/com.withings.wiScaleNG/Data/Library/Application Support/coredata`.
+   - **iPhone Backup:** create or select a completed local Finder/iTunes backup. WiScale.app is not required on the Mac. An iCloud Backup alone is not sufficient. Follow the [iPhone backup guide](docs/IPHONE-BACKUP.md) for local-backup creation, passwords and extraction.
+2. Open **Withings Health Bridge.app**, choose the source and explicitly select your own profile by name and Withings ID. In backup mode, select the backup date and click **Open Backup**, entering its encryption password if required.
+3. Choose a dedicated output folder in iCloud Drive. Click **Sync Now** for the Mac-app source or **Publish Backup** for the backup source. Automatic publishing is available only for the Mac-app source. Folder and chosen-profile preferences are remembered; backup passwords are not.
 4. Open `WithingsHealthBridge.xcodeproj` in Xcode. Select the app target, choose your developer team under Signing & Capabilities, and use your own unique bundle identifier. HealthKit capability and its usage descriptions are included. Build and run on your iPhone (iOS 17 or later).
 5. In Health Bridge on the iPhone, choose the same iCloud folder, select your own profile by name (the profile number appears below the picker), and tap **Sync to Apple Health**. Grant read access for matching and write access for the metrics you want. The Health permission screen controls which metrics can be written.
 6. Optionally enable **Sync while app is open** (checks on activation and every 30 seconds while active), **Sync in Background**, or both. Background processing requests an opportunity after at least an hour; iOS chooses the actual timing and can defer it much longer. It never prompts for Health permission in the background. Open the app for an immediate sync.
@@ -144,3 +146,15 @@ Both app projects share the Icon Composer artwork in `Artwork/AppIcon.icon`. The
 On the Mac, expand **Recent Measurements → Last Published Metric** to see up to 50 newest measurements successfully written into the export snapshot. The menu bar also has **Recent Measurements…** to open this section. Rows show only measurement type and measurement date/time. History is retained privately per source/output/profile configuration in `RecentPublished.json`, not written to iCloud or included in Git.
 
 New and corrected records update the history after a successful publish. Unchanged checks and name-only metadata updates do not create new history events. When upgrading, the first successful check can initialize the list from the existing validated snapshot, using its original publish time. A malformed history can be rebuilt, and a history-write failure is reported without preventing a valid snapshot from being published. The Mac list confirms local publication, not an Apple Health import; the iPhone’s separate list confirms its Health saves.
+
+## Importing from a local iPhone backup
+
+See the [complete iPhone backup guide](docs/IPHONE-BACKUP.md). It covers creating a local backup when you normally use iCloud Backup, finding the folder, encrypted-backup password handling, choosing the profile, publishing and syncing to Apple Health. The bridge cannot read iCloud Backups directly. Both sources use the same iPhone client and export format.
+
+Backup mode is manual and does not require Withings on the Mac. Use a fresh backup: an older authoritative snapshot can replace or remove this bridge's own newer Health entries. The guide explains this behavior and the temporary database copies.
+
+Format reference: [iphone_backup_decrypt](https://github.com/jsharkey13/iphone_backup_decrypt) describes the Finder backup keybag and file-key layout. This implementation uses Apple's CommonCrypto directly and does not bundle that library.
+
+## iOS 0.2.5 profile names in newly selected folders
+
+Both Mac data sources publish the same profile metadata. The iPhone now requests the small profile file before checking whether it is locally available. If that file is delayed and the name is not cached, it reads the name from the validated measurement snapshot, without requesting Health permissions or importing measurements. Readable profile metadata refreshes cached names, and a cached name avoids repeatedly parsing the larger snapshot. Profile-number identity and all Health matching rules are unchanged.

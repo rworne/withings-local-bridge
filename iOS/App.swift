@@ -54,19 +54,19 @@ import UIKit
     private func refreshProfileNames() {
         guard !namesLoading,let folder else{return}
         namesLoading=true
-        let ids=profiles
+        let ids=profiles, cached=profileNames
         Task {
             defer{namesLoading=false}
             let info=await Task.detached(priority:.utility){
                 let access=folder.startAccessingSecurityScopedResource()
                 defer{if access{folder.stopAccessingSecurityScopedResource()}}
-                return ids.compactMap {id->BridgeProfileInfo? in
-                    let url=folder.appendingPathComponent("profile-"+id+".wprofile")
-                    return try? BridgeProfileInfo.read(from:url,expectedID:id)
-                }
+                return Dictionary(uniqueKeysWithValues:ids.compactMap {id->(String,String)? in
+                    guard let name=BridgeProfileInfo.displayName(in:folder,expectedID:id,cached:cached[id],readSnapshot:{try Self.read($0)}) else{return nil}
+                    return (id,name)
+                })
             }.value
             guard self.folder?.path==folder.path else{return}
-            for profile in info {if let name=profile.name,!name.isEmpty {profileNames[profile.profileID]=name}}
+            for (id,name) in info {profileNames[id]=name}
             UserDefaults.standard.set(profileNames,forKey:namesKey)
         }
     }
@@ -207,7 +207,7 @@ struct MainView:View {
                         Text("Profile number: \(model.selected)").font(.footnote).foregroundStyle(.secondary).textSelection(.enabled)
                     }
                     if !model.selected.isEmpty && model.profileNames[model.selected]==nil {
-                        Text("Publish once with the updated Mac bridge to include the user’s name.").font(.footnote).foregroundStyle(.secondary)
+                        Text("Waiting for the profile name from iCloud. The profile number identifies your selection.").font(.footnote).foregroundStyle(.secondary)
                     }
                     Text("Select only your own profile. Apple Health belongs to the person using this iPhone.").font(.footnote).foregroundStyle(.secondary)
                 }
@@ -253,7 +253,7 @@ struct MainView:View {
                 Button("Remove Duplicates",role:.destructive){model.removeDuplicates()}
             } message: {Text("Grant Health read access first. Existing entries from Apple, Withings and other apps are always kept.")}
             .onChange(of:model.backgroundEnabled){_,_ in model.updateBackgroundSchedule()}
-            .onChange(of:model.selected){_,_ in model.updateBackgroundSchedule()}
+            .onChange(of:model.selected){_,_ in model.refreshProfiles();model.updateBackgroundSchedule()}
             .onReceive(timer){_ in if scenePhase == .active{model.poll()}}
         }
     }
