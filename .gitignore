@@ -1,0 +1,53 @@
+# macOS / editors
+.DS_Store
+.AppleDouble/
+.vscode/
+.idea/
+*.swp
+
+# SwiftPM and Xcode outputs / per-user settings
+.build/
+.swiftpm/
+DerivedData/
+build/
+dist/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.app/
+*.ipa
+*.xcarchive/
+*.dSYM/
+*.zip
+*.log
+
+# Personal exports, Health records, SQLite stores and bridge state
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.csv
+*.whealth
+*.wprofile
+*.wbridge/
+*.ndjson
+RecentImports.json
+health-sources.json
+health.lock
+state.json
+pending.json
+
+# Local signing, provisioning and credentials
+Config/Local.xcconfig
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.pfx
+*.pem
+*.key
+*.cer
+*.certSigningRequest
+.env
+.env.*
+!.env.example

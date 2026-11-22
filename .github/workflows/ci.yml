@@ -1,0 +1,21 @@
+name: Build and Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check shared definitions
+        run: zsh scripts/check-shared.sh
+      - name: Test Mac package
+        run: swift test --package-path Mac
+      - name: Build iOS without signing
+        run: >-
+          xcodebuild -project WithingsHealthBridge.xcodeproj
+          -scheme WithingsHealthBridge -destination 'generic/platform=iOS'
+          -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
