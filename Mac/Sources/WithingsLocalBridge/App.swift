@@ -14,6 +14,8 @@ import BridgeCore
     @Published var status="Choose the Withings database folder and an output folder in iCloud Drive."
     @Published var lastSync:String=""
     @Published var lastPublished:String=""
+    @Published var recentMeasurements:[PublishedMeasurement]=[]
+    @Published var showRecentMeasurements=false
     private var monitor:AutoPublishMonitor?
     private var signature:String?
     private let defaults=UserDefaults.standard
@@ -24,6 +26,7 @@ import BridgeCore
         defaults.removeObject(forKey:"profile");defaults.removeObject(forKey:"automatic")
         if source != nil {loadProfiles(restoreSelection:true)}
         else {status="Choose the Withings database folder to continue."}
+        refreshHistory()
         monitor=AutoPublishMonitor{[weak self] in self?.poll()}
     }
     func refreshWithingsInstallation(){
@@ -46,24 +49,25 @@ import BridgeCore
         panel.message=choosingSource ? "Choose Withings’ coredata folder, or a folder containing database backups with their WAL files.":"Choose a folder in iCloud Drive (or another local folder). Only verified Withings-device records supported by Apple Health are published."
         if choosingSource { panel.directoryURL=source ?? BridgeLocations.standardDatabaseFolder() }
         guard panel.runModal() == .OK,let url=panel.url else{return}
-        if choosingSource {profile="";automatic=false;signature=nil;lastSync="";lastPublished="";ProfilePreferences.clear(defaults:defaults)}
+        if choosingSource {profile="";automatic=false;signature=nil;lastSync="";lastPublished="";recentMeasurements=[];ProfilePreferences.clear(defaults:defaults)}
         do {
             let key=choosingSource ? "source":"output"
             let bookmark=try url.bookmarkData(options:.withSecurityScope,includingResourceValuesForKeys:nil,relativeTo:nil)
             defaults.set(bookmark,forKey:key)
             if choosingSource {source=url;loadProfiles()} else {output=url}
             signature=nil
+            refreshHistory()
         }catch{status=error.localizedDescription}
     }
     var canSync:Bool { ProfileSelection.canSync(source:source,output:output,selected:profile,choices:profiles,working:working) }
     func useStandardSource(){
         defaults.removeObject(forKey:"source");ProfilePreferences.clear(defaults:defaults)
-        profile="";automatic=false;profiles=[];signature=nil;lastSync="";lastPublished=""
+        profile="";automatic=false;profiles=[];signature=nil;lastSync="";lastPublished="";recentMeasurements=[]
         source=BridgeLocations.sourceFolder(override:nil)
         if source != nil {loadProfiles()}else{status="The standard database folder was not found. Open Withings and sign in, or choose a database folder."}
     }
     private func loadProfiles(restoreSelection:Bool=false){
-        profile="";automatic=false;signature=nil;lastSync="";lastPublished=""
+        profile="";automatic=false;signature=nil;lastSync="";lastPublished="";recentMeasurements=[]
         guard let source else{return}
         let access=source.startAccessingSecurityScopedResource();defer{if access{source.stopAccessingSecurityScopedResource()}}
         do {
@@ -80,11 +84,12 @@ import BridgeCore
         signature=nil
         if let source {ProfilePreferences.save(source:source,profileID:profile,choices:profiles,automatic:automatic,defaults:defaults)}
         refreshPublishedTime()
+        refreshHistory()
         if automatic {poll()}
     }
     func selectProfile(_ id:String){
         profile=profiles.contains(where:{$0.id == id}) ? id : ""
-        automatic=false;signature=nil;lastSync="";lastPublished=""
+        automatic=false;signature=nil;lastSync="";lastPublished="";recentMeasurements=[]
         remember()
         status=profile.isEmpty ? "Choose a profile before enabling synchronization." : "Selected profile. Choose an output folder if needed, then sync or enable automatic publishing."
     }
@@ -100,6 +105,15 @@ import BridgeCore
             }
         }
         return digest(Data(values.joined(separator:"|").utf8))
+    }
+    private func stateFolder(source:URL,output:URL,profile:String)->URL {
+        let root=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("WithingsHealthBridge",isDirectory:true)
+        let key=digest(Data([source.path,output.path,profile].joined(separator:"\n").utf8))
+        return root.appendingPathComponent(key,isDirectory:true)
+    }
+    private func refreshHistory() {
+        guard let source,let output,!profile.isEmpty else{recentMeasurements=[];return}
+        recentMeasurements=(try? PublishedHistory.load(state:stateFolder(source:source,output:output,profile:profile))) ?? []
     }
     private func refreshPublishedTime() {
         guard let output,!profile.isEmpty else{lastPublished="";return}
@@ -125,9 +139,7 @@ import BridgeCore
         lastSync=Date().formatted(date:.abbreviated,time:.standard)
         let selected=profile
         let before=sourceSignature()
-        let stateRoot=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("WithingsHealthBridge",isDirectory:true)
-        let key=digest(Data([source.path,output.path,selected].joined(separator:"\n").utf8))
-        let config=BridgeConfiguration(source:source,output:output,state:stateRoot.appendingPathComponent(key,isDirectory:true),profile:selected)
+        let config=BridgeConfiguration(source:source,output:output,state:stateFolder(source:source,output:output,profile:selected),profile:selected)
         Task { [self] in
             let a=source.startAccessingSecurityScopedResource(),b=output.startAccessingSecurityScopedResource()
             defer{if a{source.stopAccessingSecurityScopedResource()};if b{output.stopAccessingSecurityScopedResource()};working=false}
@@ -139,6 +151,7 @@ import BridgeCore
                 }.value
                 status=result.message+" Total: \(result.total).";lastSync=Date().formatted(date:.abbreviated,time:.standard)
                 refreshPublishedTime()
+                recentMeasurements=result.recentMeasurements
                 signature=before // A change during extraction is checked again next poll.
             }catch{status=error.localizedDescription}
         }
@@ -192,9 +205,30 @@ import BridgeCore
                     Text("Last checked updates even when nothing changed. Last published is when the local snapshot file was written; it does not confirm iCloud delivery.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                Section("Recent Measurements") {
+                    DisclosureGroup(isExpanded:$model.showRecentMeasurements) {
+                        if model.recentMeasurements.isEmpty {
+                            Text("Published measurements will appear here after the next successful check.").foregroundStyle(.secondary)
+                        }
+                        ForEach(model.recentMeasurements) {item in
+                            VStack(alignment:.leading,spacing:4) {
+                                Text(item.metricName)
+                                Text(item.measuredAt.formatted(date:.abbreviated,time:.standard)).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    } label: {
+                        VStack(alignment:.leading,spacing:4) {
+                            Text("Last Published Metric")
+                            if let latest=model.recentMeasurements.first {
+                                Text(latest.metricName+" · "+latest.measuredAt.formatted(date:.abbreviated,time:.standard)).font(.caption).foregroundStyle(.secondary)
+                            } else {Text("No recent history").font(.caption).foregroundStyle(.secondary)}
+                        }
+                    }
+                    Text("Up to 50 newest measurements successfully published from the databases. Dates are measurement times. Apple Health imports are shown on the iPhone.").font(.caption).foregroundStyle(.secondary)
+                }
                 Section("Privacy and Coverage") {
                     Text("Reads selected databases without changing their measurement records. Publishes only supported Apple Health measurements with verified Withings hardware provenance. Unknown devices, imported data, scores, credentials, notes, audio and GPS are excluded.")
-                    Text("Select this same iCloud folder in the separate Health Bridge iPhone app. This format is independent of CSV Explorer.").font(.caption).foregroundStyle(.secondary)
+                    Text("Select this same iCloud folder in the Health Bridge iPhone app.").font(.caption).foregroundStyle(.secondary)
                 }
             }
             .formStyle(.grouped).padding().frame(minWidth:640,minHeight:780)
@@ -218,6 +252,11 @@ private struct BridgeMenu:View {
         Text("Last checked: \(model.lastSync.isEmpty ? "Not checked this session":model.lastSync)")
         Text("Last published (local): \(model.lastPublished.isEmpty ? "Not available":model.lastPublished)")
         Divider()
+        Button("Recent Measurements…") {
+            model.showRecentMeasurements=true
+            openWindow(id:"bridge-main")
+            NSApp.activate(ignoringOtherApps:true)
+        }
         Button("Open Withings Health Bridge") {
             openWindow(id:"bridge-main")
             NSApp.activate(ignoringOtherApps:true)

@@ -1,3 +1,12 @@
+# Mac 0.2.6 / iOS 0.2.4 — Icons and Mac History
+
+- Added shared icon artwork for the Mac application bundle and iPhone project.
+- Added a persistent Mac list of the 50 newest published measurements, showing type and measurement date/time without values.
+- Added Recent Measurements to the menu-bar menu.
+- Records new/corrected measurements only after successful publication; unchanged checks do not retimestamp or duplicate history.
+- Seeds history from an existing validated export on upgrade and keeps it private to the selected configuration.
+- Icon Composer builds require Xcode 26 or later.
+
 # Mac 0.2.5 — Menu Bar Utility
 
 - Added a persistent menu-bar icon with Sync Now, Last checked, Last published (local), Open Withings Health Bridge and Quit.
@@ -41,7 +50,7 @@
 
 # 0.2.0 — Standalone Health Bridge
 
-- Separate Mac producer and minimal iPhone Apple Health app; no changes to CSV Explorer or the original Local Bridge.
+- Standalone Mac producer and minimal iPhone Apple Health app.
 - Explicit Withings hardware provenance filter and conservative HealthKit measurement whitelist.
 - Coordinated, atomic iCloud snapshots with checksum validation and revision checks.
 - Read-only database extraction that includes committed WAL content.

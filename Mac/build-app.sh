@@ -15,16 +15,21 @@ APP="$DIST_ROOT/Withings Health Bridge.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BINARY_ROOT/WithingsLocalBridge" "$APP/Contents/MacOS/WithingsLocalBridge"
 cp "$BINARY_ROOT/withings-bridge" "$DIST_ROOT/withings-bridge"
+xcrun actool "$PROJECT_ROOT/../Artwork/AppIcon.icon" --compile "$APP/Contents/Resources" \
+  --platform macosx --minimum-deployment-target 13.0 --app-icon AppIcon \
+  --output-partial-info-plist "$BUILD_ROOT/icon-info.plist"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>local.withingshealthbridge.Mac</string>
 <key>CFBundleName</key><string>Withings Health Bridge</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>CFBundleIconName</key><string>AppIcon</string>
 <key>CFBundleExecutable</key><string>WithingsLocalBridge</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.5</string>
-<key>CFBundleVersion</key><string>6</string>
+<key>CFBundleShortVersionString</key><string>0.2.6</string>
+<key>CFBundleVersion</key><string>7</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>LSUIElement</key><true/>

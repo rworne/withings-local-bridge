@@ -1,8 +1,8 @@
 # Withings Local Bridge
 
-Source for **Withings Health Bridge**, **Mac 0.2.5 (build 6)** and **iOS 0.2.3 (build 4)**: a Mac publisher and an iPhone companion.
+Source for **Withings Health Bridge**, **Mac 0.2.6 (build 7)** and **iOS 0.2.4 (build 5)**: a Mac publisher and an iPhone companion.
 
-The Mac reads the databases maintained by the installed Withings app, selects supported measurements with verified Withings hardware provenance, and publishes a compact snapshot to your chosen iCloud Drive folder. The iPhone reads that folder and saves missing measurements to Apple Health. CSV Explorer is not involved.
+The Mac reads the databases maintained by the installed Withings app, selects supported measurements with verified Withings hardware provenance, and publishes a compact snapshot to your chosen iCloud Drive folder. The iPhone reads that folder and saves missing measurements to Apple Health.
 
 ## Setup
 
@@ -91,7 +91,7 @@ xcodebuild -project WithingsHealthBridge.xcodeproj -scheme WithingsHealthBridge 
   CODE_SIGNING_ALLOWED=NO build
 ```
 
-Use macOS with Xcode 15 or later and its command-line tools selected. For the Mac application bundle, run `zsh Mac/build-app.sh`. For iPhone installation, choose your own development team and unique bundle identifier in Xcode. Keep that bundle identifier consistent across upgrades so existing Health entries remain owned by the same app. The Background Tasks identifier follows the bundle identifier automatically.
+Use macOS with Xcode 26 or later and its command-line tools selected. For the Mac application bundle, run `zsh Mac/build-app.sh`. For iPhone installation, choose your own development team and unique bundle identifier in Xcode. Keep that bundle identifier consistent across upgrades so existing Health entries remain owned by the same app. The Background Tasks identifier follows the bundle identifier automatically.
 
 Tests construct synthetic SQLite fixtures in temporary directories. They do not require Withings to be installed or access your live databases or Apple Health. Real device/iCloud verification is described in `VALIDATION.md`.
 
@@ -110,3 +110,11 @@ Polling belongs to the app model, not a window’s view. It runs while the app r
 The Mac application bundle runs as a menu-bar utility, with a heart/status icon and no Dock icon. Click the menu-bar item for **Sync Now**, **Last checked**, **Last published (local)** and **Open Withings Health Bridge**. The menu and main window share the same model and timestamps. Sync is disabled until folders/profile are configured, and while a sync is already running.
 
 Close the main window to leave the bridge running in the menu bar. **Open Withings Health Bridge** brings back the single settings window. **Quit Withings Health Bridge** exits the process and stops automatic checks. This changes only the Mac app; no iPhone update is needed.
+
+## Icons and Mac recent history
+
+Both app projects share the Icon Composer artwork in `Artwork/AppIcon.icon`. The Mac bundle includes the compiled icon and the iPhone project references the same source. The menu-bar status symbol stays monochrome.
+
+On the Mac, expand **Recent Measurements → Last Published Metric** to see up to 50 newest measurements successfully written into the export snapshot. The menu bar also has **Recent Measurements…** to open this section. Rows show only measurement type and measurement date/time. History is retained privately per source/output/profile configuration in `RecentPublished.json`, not written to iCloud or included in Git.
+
+New and corrected records update the history after a successful publish. Unchanged checks and name-only metadata updates do not create new history events. When upgrading, the first successful check can initialize the list from the existing validated snapshot, using its original publish time. A malformed history can be rebuilt, and a history-write failure is reported without preventing a valid snapshot from being published. The Mac list confirms local publication, not an Apple Health import; the iPhone’s separate list confirms its Health saves.

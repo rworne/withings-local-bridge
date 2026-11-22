@@ -63,6 +63,10 @@ public enum HealthPublisher {
         }
         return logical.values.map(\.1).sorted{$0.id<$1.id}
     }
+    private static func history(_ snapshot:HealthSnapshot,previous:HealthSnapshot?,state:URL)->([PublishedMeasurement],String) {
+        do{return(try PublishedHistory.record(snapshot:snapshot,previous:previous,state:state),"")}
+        catch{return(PublishedHistory.current(snapshot:snapshot)," Recent history could not be saved: \(error.localizedDescription)")}
+    }
     public static func publish(_ config:BridgeConfiguration,fullSnapshot:Bool=false,progress:(String)->Void={_ in})throws->PublishResult {
         let fm=FileManager.default,source=config.source.standardizedFileURL.resolvingSymlinksInPath(),output=config.output.standardizedFileURL.resolvingSymlinksInPath()
         guard config.state.standardizedFileURL != output,!config.state.path.hasPrefix(source.path+"/"),source != output,!output.path.hasPrefix(source.path+"/"),!source.path.hasPrefix(output.path+"/"),
@@ -99,10 +103,15 @@ public enum HealthPublisher {
         }
         let destination=output.appendingPathComponent("profile-"+config.profile+".whealth")
         var revision=Int64(Date().timeIntervalSince1970*1000)
+        var priorSnapshot:HealthSnapshot?
         if fm.fileExists(atPath:destination.path) {
             let previous=try JSONDecoder().decode(HealthSnapshot.self,from:Data(contentsOf:destination));try previous.validate()
+            priorSnapshot=previous
             guard previous.profileID==config.profile else{throw BridgeError.message("The output belongs to another profile.")}
-            if previous.recordsSHA256==hash && previous.profileName==profileName {return PublishResult(package:nil,upserts:0,deletions:0,total:records.count,message:"No changes in eligible measurements.")}
+            if previous.recordsSHA256==hash && previous.profileName==profileName {
+                let (history,warning)=Self.history(previous,previous:previous,state:config.state)
+                return PublishResult(package:nil,upserts:0,deletions:0,total:records.count,message:"No changes in eligible measurements."+warning,recentMeasurements:history)
+            }
             revision=max(revision,previous.revision+1)
         }
         let snapshot=HealthSnapshot(format:HealthSnapshot.formatName,version:1,profileID:config.profile,revision:revision,
@@ -115,7 +124,8 @@ public enum HealthPublisher {
         }
         if let error=coordinationError ?? writeError as NSError? {throw error}
         try canonical(extracted.sources).write(to:stateURL,options:.atomic)
+        let (history,warning)=Self.history(snapshot,previous:priorSnapshot,state:config.state)
         return PublishResult(package:destination,upserts:records.count,deletions:0,total:records.count,
-            message:"Published eligible measurements. Excluded \(extracted.records.filter{!eligible($0)}.count) non-Withings or unverified source records.")
+            message:"Published eligible measurements. Excluded \(extracted.records.filter{!eligible($0)}.count) non-Withings or unverified source records."+warning,recentMeasurements:history)
     }
 }

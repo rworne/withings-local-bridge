@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		45B31CBE5B63DF5AAD6FF0DC /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4EA561D17DA641D5ACB44C37 /* AppIcon.icon */; };
 		48E8CB412384EB2CB51FC48B /* ImportHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48092E564121360712C46453 /* ImportHistoryStore.swift */; };
 		6841DA1653B74509CC9BB745 /* BackgroundSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94A1FF0C4A116474F58C8EEB /* BackgroundSync.swift */; };
 		889E24E9FA64BA6110508C05 /* ImportHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCB874961DB7AF64C89760DD /* ImportHistory.swift */; };
@@ -19,6 +20,7 @@
 /* Begin PBXFileReference section */
 		1F50D38C2F63234FAEBE3EFA /* HealthSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSync.swift; sourceTree = "<group>"; };
 		48092E564121360712C46453 /* ImportHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportHistoryStore.swift; sourceTree = "<group>"; };
+		4EA561D17DA641D5ACB44C37 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		81D955564F79681A3920300A /* HealthExchange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthExchange.swift; sourceTree = "<group>"; };
 		84607E8BD6EF93D5257BA312 /* DuplicatePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicatePolicy.swift; sourceTree = "<group>"; };
 		8F778C18D700F8190DC808D2 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
@@ -30,6 +32,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		5588DCA907C31A92AF177898 /* Artwork */ = {
+			isa = PBXGroup;
+			children = (
+				4EA561D17DA641D5ACB44C37 /* AppIcon.icon */,
+			);
+			path = Artwork;
+			sourceTree = "<group>";
+		};
 		83CF4182D8D95AB8A24A8E2E /* Shared */ = {
 			isa = PBXGroup;
 			children = (
@@ -43,6 +53,7 @@
 		98C94C0DA2995989C3941A2B = {
 			isa = PBXGroup;
 			children = (
+				5588DCA907C31A92AF177898 /* Artwork */,
 				EBBF5659EF18DEE60629A172 /* iOS */,
 				83CF4182D8D95AB8A24A8E2E /* Shared */,
 				CE62AB0436FC726CFDD65621 /* Products */,
@@ -78,6 +89,7 @@
 			buildConfigurationList = 1331BC2ED701CEBCFB265891 /* Build configuration list for PBXNativeTarget "WithingsHealthBridge" */;
 			buildPhases = (
 				C1DA51E35CCE60F0B9275781 /* Sources */,
+				E68EFC2EAA286B5290947738 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -122,6 +134,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E68EFC2EAA286B5290947738 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				45B31CBE5B63DF5AAD6FF0DC /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C1DA51E35CCE60F0B9275781 /* Sources */ = {
@@ -196,7 +219,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -216,7 +239,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.2.3;
+				MARKETING_VERSION = 0.2.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -262,7 +285,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -276,7 +299,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.2.3;
+				MARKETING_VERSION = 0.2.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

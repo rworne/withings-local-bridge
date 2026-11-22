@@ -88,4 +88,21 @@ final class PublisherTests:XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(BridgeProfileInfo.self,from:Data(contentsOf:file)).name,"Updated Person")
     }
 
+    func testSuccessfulPublishReportsHistoryAndHistoryFailureIsNonfatal()throws {
+        let first=try HealthPublisher.publish(config)
+        XCTAssertEqual(first.recentMeasurements.count,1)
+        XCTAssertEqual(first.recentMeasurements.first?.metricName,"Weight")
+        let date=first.recentMeasurements.first?.publishedAt
+        let unchanged=try HealthPublisher.publish(config)
+        XCTAssertNil(unchanged.package);XCTAssertEqual(unchanged.recentMeasurements.first?.publishedAt,date)
+        let log=state.appendingPathComponent("RecentPublished.json")
+        try FileManager.default.removeItem(at:log)
+        try FileManager.default.createDirectory(at:log,withIntermediateDirectories:true)
+        try health.exec("UPDATE ZWTQUANTITY SET ZVALUE=125 WHERE Z_PK=1")
+        let next=try HealthPublisher.publish(config)
+        XCTAssertNotNil(next.package)
+        XCTAssertTrue(next.message.contains("history could not be saved"))
+        XCTAssertEqual(next.recentMeasurements.count,1)
+    }
+
 }

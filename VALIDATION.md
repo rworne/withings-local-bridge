@@ -57,3 +57,9 @@ All 16 Mac tests pass, including the new window-independent timer, injected work
 ## Mac 0.2.5 menu bar
 
 The menu-bar release build passed, and the signed app bundle was verified with `LSUIElement` enabled and version/build 0.2.5/6. All 16 Mac regression tests passed. The menu shares the existing model for sync readiness and both timestamps, and opens the unique `bridge-main` window scene. No live database exports or Health writes were performed during verification. Menu clicks/window activation still need confirmation in the user’s normal Mac session.
+
+## Mac 0.2.6 / iOS 0.2.4 icons and Mac history
+
+All 19 Mac tests passed. New checks cover the 50-entry cap, newest-measurement ordering, persistence, corrections without duplicates, unchanged checks not rewriting the log, migration from an existing snapshot, malformed-history recovery and nonfatal history-write failure. History serialization excludes measurement values and device/profile names. The existing publisher/source-schema safeguards continue to pass.
+
+The iOS device build passed with the shared Icon Composer document compiled as AppIcon; the built plist includes CFBundlePrimaryIcon/AppIcon. Apple’s compiler also rendered the Mac icon successfully. The Mac release is ad-hoc signed for local testing. No live measurements or Apple Health records were read/written during verification; synthetic fixtures were used. Real menu/history presentation and OS icon caching remain checks on the user’s Mac/iPhone.

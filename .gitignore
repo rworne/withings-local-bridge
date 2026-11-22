@@ -33,6 +33,7 @@ xcuserdata/
 *.wbridge/
 *.ndjson
 RecentImports.json
+RecentPublished.json
 health-sources.json
 health.lock
 state.json

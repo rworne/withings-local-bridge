@@ -90,6 +90,7 @@ public struct PublishResult: Sendable {
     public let deletions: Int
     public let total: Int
     public let message: String
+    public var recentMeasurements:[PublishedMeasurement]=[]
 }
 public struct BridgeConfiguration: Sendable {
     public let source: URL
