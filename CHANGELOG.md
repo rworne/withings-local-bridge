@@ -1,3 +1,11 @@
+# Mac 0.2.4 — Automatic Check Status
+
+- Last checked now advances on every automatic check, even when the local databases have not changed.
+- Shows Last published (local) separately, with a clear no-database-changes status.
+- Moved polling out of the window view into the application model; added immediate startup, enable, wake and app-activation checks.
+- Republish a missing output snapshot even when source file metadata is unchanged.
+- iPhone app and measurement/Health mappings unchanged.
+
 # 0.2.3 — Profile Name Loading Fix
 
 - Fixed iCloud name-file loading: coordinate reads instead of waiting indefinitely for a specific download status.

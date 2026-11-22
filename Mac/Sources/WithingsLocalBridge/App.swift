@@ -13,6 +13,8 @@ import BridgeCore
     @Published var working=false
     @Published var status="Choose the Withings database folder and an output folder in iCloud Drive."
     @Published var lastSync:String=""
+    @Published var lastPublished:String=""
+    private var monitor:AutoPublishMonitor?
     private var signature:String?
     private let defaults=UserDefaults.standard
     init(){
@@ -22,6 +24,7 @@ import BridgeCore
         defaults.removeObject(forKey:"profile");defaults.removeObject(forKey:"automatic")
         if source != nil {loadProfiles(restoreSelection:true)}
         else {status="Choose the Withings database folder to continue."}
+        monitor=AutoPublishMonitor{[weak self] in self?.poll()}
     }
     func refreshWithingsInstallation(){
         withingsApplication=BridgeLocations.withingsApplication(registered:NSWorkspace.shared.urlForApplication(withBundleIdentifier:"com.withings.wiScaleNG"))
@@ -43,7 +46,7 @@ import BridgeCore
         panel.message=choosingSource ? "Choose Withings’ coredata folder, or a folder containing database backups with their WAL files.":"Choose a folder in iCloud Drive (or another local folder). Only verified Withings-device records supported by Apple Health are published."
         if choosingSource { panel.directoryURL=source ?? BridgeLocations.standardDatabaseFolder() }
         guard panel.runModal() == .OK,let url=panel.url else{return}
-        if choosingSource {profile="";automatic=false;signature=nil;lastSync="";ProfilePreferences.clear(defaults:defaults)}
+        if choosingSource {profile="";automatic=false;signature=nil;lastSync="";lastPublished="";ProfilePreferences.clear(defaults:defaults)}
         do {
             let key=choosingSource ? "source":"output"
             let bookmark=try url.bookmarkData(options:.withSecurityScope,includingResourceValuesForKeys:nil,relativeTo:nil)
@@ -55,12 +58,12 @@ import BridgeCore
     var canSync:Bool { ProfileSelection.canSync(source:source,output:output,selected:profile,choices:profiles,working:working) }
     func useStandardSource(){
         defaults.removeObject(forKey:"source");ProfilePreferences.clear(defaults:defaults)
-        profile="";automatic=false;profiles=[];signature=nil;lastSync=""
+        profile="";automatic=false;profiles=[];signature=nil;lastSync="";lastPublished=""
         source=BridgeLocations.sourceFolder(override:nil)
         if source != nil {loadProfiles()}else{status="The standard database folder was not found. Open Withings and sign in, or choose a database folder."}
     }
     private func loadProfiles(restoreSelection:Bool=false){
-        profile="";automatic=false;signature=nil;lastSync=""
+        profile="";automatic=false;signature=nil;lastSync="";lastPublished=""
         guard let source else{return}
         let access=source.startAccessingSecurityScopedResource();defer{if access{source.stopAccessingSecurityScopedResource()}}
         do {
@@ -76,10 +79,12 @@ import BridgeCore
     func remember(){
         signature=nil
         if let source {ProfilePreferences.save(source:source,profileID:profile,choices:profiles,automatic:automatic,defaults:defaults)}
+        refreshPublishedTime()
+        if automatic {poll()}
     }
     func selectProfile(_ id:String){
         profile=profiles.contains(where:{$0.id == id}) ? id : ""
-        automatic=false;signature=nil;lastSync=""
+        automatic=false;signature=nil;lastSync="";lastPublished=""
         remember()
         status=profile.isEmpty ? "Choose a profile before enabling synchronization." : "Selected profile. Choose an output folder if needed, then sync or enable automatic publishing."
     }
@@ -96,10 +101,28 @@ import BridgeCore
         }
         return digest(Data(values.joined(separator:"|").utf8))
     }
-    func poll(){guard automatic,canSync,let next=sourceSignature(),signature != next else{return};sync()}
+    private func refreshPublishedTime() {
+        guard let output,!profile.isEmpty else{lastPublished="";return}
+        let access=output.startAccessingSecurityScopedResource();defer{if access{output.stopAccessingSecurityScopedResource()}}
+        let file=output.appendingPathComponent("profile-"+profile+".whealth")
+        if let attrs=try? FileManager.default.attributesOfItem(atPath:file.path),let date=attrs[.modificationDate] as? Date {
+            lastPublished=date.formatted(date:.abbreviated,time:.standard)
+        } else {lastPublished=""}
+    }
+    func poll(){
+        guard automatic,canSync,let next=sourceSignature() else{return}
+        lastSync=Date().formatted(date:.abbreviated,time:.standard)
+        refreshPublishedTime()
+        guard signature != next || lastPublished.isEmpty else {
+            status="Checked the local databases: no file changes detected. Automatic publishing is active."
+            return
+        }
+        sync()
+    }
     func sync(full:Bool=false){
         guard canSync,let source,let output else{return}
         working=true
+        lastSync=Date().formatted(date:.abbreviated,time:.standard)
         let selected=profile
         let before=sourceSignature()
         let stateRoot=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("WithingsHealthBridge",isDirectory:true)
@@ -115,6 +138,7 @@ import BridgeCore
                     }
                 }.value
                 status=result.message+" Total: \(result.total).";lastSync=Date().formatted(date:.abbreviated,time:.standard)
+                refreshPublishedTime()
                 signature=before // A change during extraction is checked again next poll.
             }catch{status=error.localizedDescription}
         }
@@ -123,7 +147,6 @@ import BridgeCore
 
 @main struct WithingsLocalBridgeApp:App {
     @StateObject private var model=BridgeModel()
-    private let timer=Timer.publish(every:60,on:.main,in:.common).autoconnect()
     var body:some Scene {
         WindowGroup("Withings Health Bridge"){
             Form {
@@ -158,13 +181,16 @@ import BridgeCore
                     Toggle("Automatically publish database changes",isOn:$model.automatic)
                         .disabled(!model.canSync)
                         .onChange(of:model.automatic){_ in model.remember()}
-                    Text("Checks once a minute while this Mac app is running. Keep Withings open and syncing on this Mac.").font(.caption).foregroundStyle(.secondary)
+                    Text("Checks once a minute while this Mac app is running, including with its window closed. Also checks when the Mac wakes or you return to the app. Withings must update its local databases before there is anything new to publish.").font(.caption).foregroundStyle(.secondary)
                     HStack{
                         Button("Sync Now"){model.sync()}.buttonStyle(.borderedProminent)
                     }.disabled(!model.canSync)
                     if model.working{ProgressView().frame(maxWidth:.infinity)}
                     Text(model.status).textSelection(.enabled)
-                    if !model.lastSync.isEmpty{LabeledContent("Last checked",value:model.lastSync)}
+                    LabeledContent("Last checked",value:model.lastSync.isEmpty ? "Not checked this session":model.lastSync)
+                    LabeledContent("Last published (local)",value:model.lastPublished.isEmpty ? "Not available":model.lastPublished)
+                    Text("Last checked updates even when nothing changed. Last published is when the local snapshot file was written; it does not confirm iCloud delivery.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Privacy and Coverage") {
                     Text("Reads selected databases without changing their measurement records. Publishes only supported Apple Health measurements with verified Withings hardware provenance. Unknown devices, imported data, scores, credentials, notes, audio and GPS are excluded.")
@@ -173,8 +199,6 @@ import BridgeCore
             }
             .formStyle(.grouped).padding().frame(minWidth:640,minHeight:780)
             .disabled(model.working)
-            .onReceive(timer){_ in model.poll()}
-            .task {model.poll()}
         }.defaultSize(width:700,height:900)
     }
 }
