@@ -1,3 +1,9 @@
+# Documentation update
+
+- Explained Saved, Already in Health, Unchanged, Not Authorized and Removed sync results.
+- Documented source priority, timestamp-based matching, rounding differences, sample counts, read/write permissions and cleanup ownership.
+- Clarified the difference between Mac publication and iPhone Apple Health imports.
+
 # Mac 0.2.6 / iOS 0.2.4 — Icons and Mac History
 
 - Added shared icon artwork for the Mac application bundle and iPhone project.

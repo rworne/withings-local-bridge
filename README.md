@@ -32,6 +32,32 @@ Brand alone is insufficient: imported measurements can carry a Withings brand co
 
 The measurement snapshot includes only profile ID, measurement identity/type/times/values and limited source-device metadata (model, local device ID, firmware if present). A small `.wprofile` sidecar includes the profile ID and display name for the iPhone picker; no email address or birth date is included. No database copies, account credentials, notes, remote links, GPS or opaque blobs are published. The chosen folder contains sensitive health data; share it only with intended recipients.
 
+## iPhone sync results
+
+The status below **Last Sync** summarizes the most recent completed sync, rather than lifetime totals.
+
+| Status | Meaning |
+| --- | --- |
+| **Saved** | New samples saved to Apple Health, or updated versions of samples previously saved by this app. |
+| **Already in Health** | Matching samples from another app were found, so the bridge skipped importing its own copies. |
+| **Unchanged** | Samples previously imported by this app still match the supplied records, so no update was needed. |
+| **Not Authorized** | Eligible samples were skipped because this app does not have write permission for their measurement type. This does not mean HealthKit rejects or cannot support the type. |
+| **Removed** | This app’s samples were cleaned up because matching samples from another app were found, or because they no longer exist in the current validated export for the same profile. |
+
+Counts represent Health samples/components, not necessarily individual measurements. For example, blood pressure has separate systolic and diastolic samples, so one reading can count as two. A corrected bridge entry is counted under **Saved**; **Removed** reports cleanup. Write permission is checked before matching, so **Not Authorized** does not imply those samples are missing from Health. If a sync fails or is interrupted, some earlier batches may already have been saved; recent import history records those confirmed saves.
+
+### Source priority and duplicate matching
+
+- **Matching entries from other apps take priority over this bridge’s entries.** This includes Withings, Apple and any other app. The bridge does not give Withings a special rank over other existing sources.
+- If another app already has a match, the bridge skips its own import. If the bridge imported first and a matching entry appears later, it removes only its own duplicate when that match is found.
+- Matching uses the Health measurement type and whole-second start and end timestamps. Sleep also requires the same sleep stage. Numerical values do not have to be identical, which avoids duplicates caused by rounding or precision differences.
+- The bridge never edits or deletes entries created by another app, including duplicates between Withings and Apple or between two other sources. When duplicate bridge entries are the only matches, duplicate cleanup keeps one bridge entry.
+- These rules govern the bridge’s imports and cleanup. They do not change Apple Health’s own source-order settings.
+
+The bridge needs Health **read access** to discover matches from other apps. iOS does not let the app verify whether read access was granted, so denied read access can lead to missed matches and duplicate imports. Grant read access to the supported types before syncing or cleaning duplicates.
+
+The Mac’s recent-measurement history confirms a successful write into its local export snapshot. The iPhone’s **Saved** count and recent-import history confirm Health saves. A Mac publish alone is not confirmation that iCloud delivered the file or that the iPhone imported it.
+
 ## Matching, corrections and removal
 
 - Existing readable entries from other apps are matched by measurement type and whole-second start/end times; sleep also requires the same stage. They are left untouched.
