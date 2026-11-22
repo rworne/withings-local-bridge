@@ -1,6 +1,6 @@
 # Withings Local Bridge
 
-Source for **Withings Health Bridge**, **Mac 0.2.4 (build 5)** and **iOS 0.2.3 (build 4)**: a Mac publisher and an iPhone companion.
+Source for **Withings Health Bridge**, **Mac 0.2.5 (build 6)** and **iOS 0.2.3 (build 4)**: a Mac publisher and an iPhone companion.
 
 The Mac reads the databases maintained by the installed Withings app, selects supported measurements with verified Withings hardware provenance, and publishes a compact snapshot to your chosen iCloud Drive folder. The iPhone reads that folder and saves missing measurements to Apple Health. CSV Explorer is not involved.
 
@@ -104,3 +104,9 @@ Released under the [MIT License](LICENSE).
 **Last checked** advances on every automatic database check, including when the file signature is unchanged. **Last published (local)** shows the snapshot file’s last modification time and is not an iCloud-delivery receipt. The status explicitly says when no database file changes were detected. The bridge still relies on the Withings app to update its local databases first.
 
 Polling belongs to the app model, not a window’s view. It runs while the app remains open, including after its window closes, and checks immediately at startup, when automatic publishing is enabled, on Mac wake and on returning to the app. Turning automatic publishing off prevents those callbacks from publishing. A missing output snapshot is republished even when source files are unchanged. No Withings network requests or wake-from-sleep prevention were added.
+
+## Menu bar (Mac 0.2.5)
+
+The Mac application bundle runs as a menu-bar utility, with a heart/status icon and no Dock icon. Click the menu-bar item for **Sync Now**, **Last checked**, **Last published (local)** and **Open Withings Health Bridge**. The menu and main window share the same model and timestamps. Sync is disabled until folders/profile are configured, and while a sync is already running.
+
+Close the main window to leave the bridge running in the menu bar. **Open Withings Health Bridge** brings back the single settings window. **Quit Withings Health Bridge** exits the process and stops automatic checks. This changes only the Mac app; no iPhone update is needed.

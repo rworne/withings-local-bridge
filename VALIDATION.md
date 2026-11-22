@@ -53,3 +53,7 @@ The 0.2.3 source was copied into a standalone repository tree, independent of th
 The previous UI timestamp was updated only after a publish attempt, and automatic polling skipped that path when the source signature was unchanged. The timestamp alone therefore did not indicate that polling had stopped. The revised UI distinguishes a database check from a local snapshot write. Its local-write timestamp is filesystem metadata and does not assert delivery to iCloud.
 
 All 16 Mac tests pass, including the new window-independent timer, injected workspace-wake/application-activation notification checks, and stopping/cancelling scheduled callbacks. Existing fixture tests still confirm unchanged snapshots are not rewritten. A Mac release build is included in the update. Real long-running background/wake behavior should be observed on the user’s Mac. The iPhone code was not changed.
+
+## Mac 0.2.5 menu bar
+
+The menu-bar release build passed, and the signed app bundle was verified with `LSUIElement` enabled and version/build 0.2.5/6. All 16 Mac regression tests passed. The menu shares the existing model for sync readiness and both timestamps, and opens the unique `bridge-main` window scene. No live database exports or Health writes were performed during verification. Menu clicks/window activation still need confirmation in the user’s normal Mac session.

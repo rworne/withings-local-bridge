@@ -1,3 +1,11 @@
+# Mac 0.2.5 — Menu Bar Utility
+
+- Added a persistent menu-bar icon with Sync Now, Last checked, Last published (local), Open Withings Health Bridge and Quit.
+- Main settings use a single window that can be reopened from the menu bar.
+- The bundled Mac app runs without a Dock icon; closing its window leaves automatic checks running.
+- Menu sync uses the same model, configuration and in-progress guard as the main window.
+- iPhone app and measurement/Health mappings unchanged.
+
 # Mac 0.2.4 — Automatic Check Status
 
 - Last checked now advances on every automatic check, even when the local databases have not changed.

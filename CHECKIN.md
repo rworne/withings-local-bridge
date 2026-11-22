@@ -1,6 +1,6 @@
 # Source check-in
 
-This tree contains Mac 0.2.4 (build 5) and iOS 0.2.3 (build 4), including both apps. It is separate from CSV Explorer and the original general-purpose database bridge.
+This tree contains Mac 0.2.5 (build 6) and iOS 0.2.3 (build 4), including both apps. It is separate from CSV Explorer and the original general-purpose database bridge.
 
 The initial check-in includes source, synthetic test code, the shared iOS project, build metadata and documentation. Personal database/export files, compiled apps, credentials and user-specific Xcode settings are excluded. The `.gitignore` also covers future local generated data and signing material.
 

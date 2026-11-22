@@ -148,7 +148,7 @@ import BridgeCore
 @main struct WithingsLocalBridgeApp:App {
     @StateObject private var model=BridgeModel()
     var body:some Scene {
-        WindowGroup("Withings Health Bridge"){
+        Window("Withings Health Bridge",id:"bridge-main"){
             Form {
                 Section("Withings Application") {
                     if model.withingsApplication != nil {
@@ -200,5 +200,29 @@ import BridgeCore
             .formStyle(.grouped).padding().frame(minWidth:640,minHeight:780)
             .disabled(model.working)
         }.defaultSize(width:700,height:900)
+        MenuBarExtra("Withings Health Bridge",systemImage:"heart.text.square") {
+            BridgeMenu(model:model)
+        }.menuBarExtraStyle(.menu)
+    }
+}
+
+private struct BridgeMenu:View {
+    @ObservedObject var model:BridgeModel
+    @Environment(\.openWindow) private var openWindow
+    var body:some View {
+        Text("Withings Health Bridge")
+        Text(model.working ? "Syncing…":model.automatic ? "Automatic publishing on":"Automatic publishing off")
+        Divider()
+        Button(model.working ? "Syncing…":"Sync Now") {model.sync()}
+            .disabled(!model.canSync)
+        Text("Last checked: \(model.lastSync.isEmpty ? "Not checked this session":model.lastSync)")
+        Text("Last published (local): \(model.lastPublished.isEmpty ? "Not available":model.lastPublished)")
+        Divider()
+        Button("Open Withings Health Bridge") {
+            openWindow(id:"bridge-main")
+            NSApp.activate(ignoringOtherApps:true)
+        }
+        Divider()
+        Button("Quit Withings Health Bridge") {NSApp.terminate(nil)}
     }
 }

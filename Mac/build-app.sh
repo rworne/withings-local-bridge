@@ -23,10 +23,11 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>Withings Health Bridge</string>
 <key>CFBundleExecutable</key><string>WithingsLocalBridge</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.4</string>
-<key>CFBundleVersion</key><string>5</string>
+<key>CFBundleShortVersionString</key><string>0.2.5</string>
+<key>CFBundleVersion</key><string>6</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>LSUIElement</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
 <key>UTExportedTypeDeclarations</key><array><dict>
 <key>UTTypeIdentifier</key><string>local.withingshealthbridge.snapshot</string>
