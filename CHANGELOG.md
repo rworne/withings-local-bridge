@@ -1,3 +1,11 @@
+# Windows 0.1.0 — Local iPhone Backup Publisher
+
+- Added a Windows interface for completed local Apple Devices/iTunes backups, with local password unlocking, dated backup selection, named profiles and manual publication to iCloud Drive.
+- Added progress, local check/publication timestamps, remembered options and a persistent 50-measurement history.
+- Uses the existing native-device whitelist, supported Health mappings and exchange format; no Withings install or Apple/Withings online credentials are required in the bridge.
+- Added encrypted/unencrypted backup, filtering, corrections/removals, source-guard and checksum tests, plus exact comparison with the Swift publisher and an iPhone-format compatibility fixture.
+- Added a manual Windows executable build/startup-check workflow and Windows setup documentation. Interactive Windows and real iCloud delivery testing remain required before wider distribution.
+
 # Backup Setup Documentation
 
 - Added a complete guide for creating a local Finder backup, locating it, unlocking it and publishing Withings measurements to the existing iPhone client.

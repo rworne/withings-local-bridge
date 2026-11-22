@@ -97,3 +97,10 @@ The complete 22-test suite passes. A new regression fixture copies a real SQLite
 ## User confirmation — November 22, 2026
 
 The user confirmed both publishing methods and the iOS profile-name fix work on their devices. This complements the 24 passing automated tests, successful Mac release builds and successful unsigned generic iOS build. No new executable changes were made for the documentation/check-in update.
+
+## Windows 0.1.0 backup publisher
+
+- All 10 Python tests passed locally, including exact record-content, identifier and checksum comparison with the Swift publisher on the same synthetic databases. Encrypted/unencrypted extraction, wrong passwords, incomplete backups, native filtering, precision, WAL-only measurements, corrections/removals, profile names, source guards and recent history are covered.
+- All 25 Mac tests passed, including the new Windows golden-fixture validation using the existing Swift/iPhone exchange types. Existing Mac/iOS application behavior is unchanged.
+- The Windows workflow builds a portable folder-based application and starts the packaged UI with isolated settings, checking bundled AES/key-wrap and SQLite libraries without touching user backups or iCloud.
+- Real Windows backup decryption, UI use and iCloud delivery still require a tester. No live Health records or delivery folders were changed during development.

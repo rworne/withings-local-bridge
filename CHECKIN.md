@@ -1,6 +1,6 @@
 # Source check-in
 
-This tree contains Mac 0.3.3 (build 11) and iOS 0.2.5 (build 6), including both apps.
+This tree contains Mac 0.3.3 (build 11) and iOS 0.2.5 (build 6), and Windows 0.1.0 (local backup publisher).
 
 The initial check-in includes source, synthetic test code, the shared iOS project, build metadata and documentation. Personal database/export files, compiled apps, credentials and user-specific Xcode settings are excluded. The `.gitignore` also covers future local generated data and signing material.
 

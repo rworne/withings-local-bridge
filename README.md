@@ -1,10 +1,16 @@
 # Withings Local Bridge
 
-Source for **Withings Health Bridge**, **Mac 0.3.3 (build 11)** and **iOS 0.2.5 (build 6)**: a Mac publisher and an iPhone companion.
+Source for **Withings Health Bridge**, **Mac 0.3.3 (build 11)** and **iOS 0.2.5 (build 6)**: a Mac publisher and an iPhone companion. A Windows 0.1.0 backup publisher is also available; see the [Windows guide](Windows/README.md).
 
 The Mac reads either the databases maintained by the installed Withings app or a completed local iPhone backup, selects supported measurements with verified Withings hardware provenance, and publishes a compact snapshot to your chosen iCloud Drive folder. The iPhone reads that folder and saves missing measurements to Apple Health.
 
-## Setup
+## Windows backup publisher
+
+The [Windows app](Windows/README.md) uses completed local Apple Devices/iTunes backups, including encrypted backups. It does not require Withings on the PC. It follows the Mac backup interface: date/password selection, profile name and ID, output-folder selection, manual publishing, progress, timestamps and the 50 newest published measurements. iCloud for Windows handles delivery; the existing iPhone app and export format are unchanged.
+
+The source and a manually runnable **Build Windows Bridge** workflow are included. The Windows guide covers setup, portable packaging, credential handling and remaining PC verification.
+
+## Setup on Mac and iPhone
 
 1. Choose a Mac data source:
    - **Withings on this Mac:** on an Apple silicon Mac, install Withings (WiScale.app), sign in and let it sync. The bridge detects the standard database folder when accessible. If needed, click **Choose Withings Database Folder** and select `~/Library/Containers/com.withings.wiScaleNG/Data/Library/Application Support/coredata`.
@@ -100,6 +106,7 @@ The name reader now coordinates iCloud reads rather than requiring the file’s 
 - `Mac/` — Swift package, Mac UI, command-line publisher and fixture tests.
 - `iOS/` — iPhone UI, iCloud reading, background scheduling and HealthKit sync.
 - `Shared/` — the portable exchange types, matching policy and recent-import definitions.
+- `Windows/` — local-backup Windows UI, publisher, portable-executable build and synthetic compatibility tests.
 - `WithingsHealthBridge.xcodeproj/` — generated, committed iOS project; ready to open without XcodeGen.
 - `project.yml` — optional XcodeGen input for regenerating the project.
 - `scripts/check-shared.sh` — checks that the Mac package mirrors match the shared definitions.
