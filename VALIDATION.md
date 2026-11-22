@@ -104,3 +104,5 @@ The user confirmed both publishing methods and the iOS profile-name fix work on 
 - All 25 Mac tests passed, including the new Windows golden-fixture validation using the existing Swift/iPhone exchange types. Existing Mac/iOS application behavior is unchanged.
 - The Windows workflow builds a portable folder-based application and starts the packaged UI with isolated settings, checking bundled AES/key-wrap and SQLite libraries without touching user backups or iCloud.
 - Real Windows backup decryption, UI use and iCloud delivery still require a tester. No live Health records or delivery folders were changed during development.
+
+The initial native Windows workflow passed its synthetic tests and packaged executable startup check on a Windows runner. Startup exercised Tk controls, AES-CBC, RFC3394 key wrapping and SQLite with isolated settings. This verifies packaging/startup, not interactive PC use or live iCloud delivery.

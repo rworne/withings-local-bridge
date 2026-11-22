@@ -18,8 +18,11 @@ from .storage import app_folder,atomic_write,load_json
 
 def formatted_date(value):
     if value is None:return "Not available"
-    if isinstance(value,(int,float)):value=dt.datetime.fromtimestamp(value)
-    if hasattr(value,"strftime"):return value.strftime("%b %d, %Y  %I:%M:%S %p")
+    if isinstance(value,(int,float)):value=dt.datetime.fromtimestamp(value,dt.timezone.utc)
+    if isinstance(value,dt.datetime):
+        # plistlib's naive dates represent UTC, not the PC's local timezone.
+        if value.tzinfo is None:value=value.replace(tzinfo=dt.timezone.utc)
+        return value.astimezone().strftime("%b %d, %Y  %I:%M:%S %p")
     return "Date unavailable"
 
 
